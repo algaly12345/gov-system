@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏛️ بوابة الإشعارات الحكومية</title>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Cairo',sans-serif;background:#0a0e1a;color:#e2e8f0;min-height:100vh}
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.lcard{background:#111827;border:1px solid #1f2d45;border-radius:20px;padding:40px 32px;text-align:center;width:100%;max-width:440px}
+.logo{font-size:52px;margin-bottom:12px}
+.lcard h2{font-size:22px;font-weight:900;background:linear-gradient(135deg,#00d4ff,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.lcard p{color:#64748b;font-size:13px;margin-bottom:24px}
+.finput{width:100%;padding:13px 16px;background:#0a0e1a;border:1.5px solid #1f2d45;border-radius:12px;color:#e2e8f0;font-family:'Cairo',sans-serif;font-size:14px;outline:none;margin-bottom:12px;transition:border-color .2s}
+.finput:focus{border-color:#00d4ff}
+.finput::placeholder{color:#334155}
+.sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.sys-opt{padding:10px;border:1.5px solid #1f2d45;border-radius:10px;cursor:pointer;font-size:12px;font-family:'Cairo',sans-serif;background:#0a0e1a;color:#94a3b8;transition:all .2s;text-align:center}
+.sys-opt:hover{border-color:#7c3aed;color:#c4b5fd}
+.sys-opt.selected{border-color:#7c3aed;background:rgba(124,58,237,.12);color:#c4b5fd;font-weight:700}
+.sys-opt .sico{font-size:20px;display:block;margin-bottom:4px}
+.lbtn{width:100%;padding:13px;background:linear-gradient(135deg,#00d4ff22,#7c3aed55);border:1.5px solid #7c3aed;border-radius:12px;color:#c4b5fd;font-family:'Cairo',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px}
+.lbtn:hover{background:linear-gradient(135deg,#00d4ff33,#7c3aed77);color:#fff}
+.lbtn:disabled{opacity:.4;cursor:not-allowed}
+.lerr{color:#ef4444;font-size:12px;margin-top:8px;display:none}
+#app{display:none;max-width:960px;margin:0 auto;padding:20px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid #1f2d45;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.userbox{display:flex;align-items:center;gap:12px}
+.av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#00d4ff,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0}
+.uname{font-size:15px;font-weight:700}
+.uid{font-size:11px;color:#64748b;margin-top:2px;font-family:monospace}
+.sys-tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 10px;border-radius:50px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:#a78bfa;margin-top:4px}
+.hright{display:flex;gap:10px;align-items:center}
+.wsbadge{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:50px;font-size:12px;font-weight:600;border:1px solid;transition:all .3s}
+.wsbadge.on{border-color:#10b981;color:#10b981;background:rgba(16,185,129,.07)}
+.wsbadge.off{border-color:#ef4444;color:#ef4444}
+.wsbadge.wait{border-color:#f59e0b;color:#f59e0b}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.pulse{animation:pu 1.5s infinite}
+@keyframes pu{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+.outbtn{padding:7px 14px;border-radius:50px;border:1px solid #1f2d45;background:transparent;color:#64748b;font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer;transition:all .2s}
+.outbtn:hover{border-color:#ef4444;color:#ef4444}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.scard{background:#111827;border:1px solid #1f2d45;border-radius:12px;padding:16px;text-align:center}
+.snum{font-size:28px;font-weight:900;line-height:1}
+.slbl{font-size:11px;color:#64748b;margin-top:4px}
+.c-cyan .snum{color:#00d4ff}.c-green .snum{color:#10b981}.c-amber .snum{color:#f59e0b}.c-red .snum{color:#ef4444}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.fb{padding:7px 15px;border-radius:50px;border:1px solid #1f2d45;background:#111827;color:#64748b;font-family:'Cairo',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.fb:hover,.fb.on{border-color:#00d4ff;color:#00d4ff;background:rgba(0,212,255,.06)}
+.clrbtn{margin-right:auto;padding:7px 15px;border-radius:50px;border:1px solid rgba(239,68,68,.4);background:transparent;color:#ef4444;font-family:'Cairo',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
+.clrbtn:hover{background:rgba(239,68,68,.08)}
+.nlist{display:flex;flex-direction:column;gap:10px}
+.nc{background:#111827;border:1px solid #1f2d45;border-radius:14px;padding:16px 18px;display:flex;gap:13px;position:relative;overflow:hidden;transition:border-color .25s,box-shadow .25s;animation:si .35s cubic-bezier(.34,1.56,.64,1) both}
+.nc::before{content:'';position:absolute;right:0;top:0;bottom:0;width:3px;border-radius:0 4px 4px 0}
+.nc:hover{border-color:rgba(255,255,255,.09)}
+.nc.isnew{border-color:rgba(0,212,255,.4);box-shadow:0 0 18px rgba(0,212,255,.1)}
+.nc.ismine{border-color:rgba(124,58,237,.5);box-shadow:0 0 16px rgba(124,58,237,.12)}
+.nc.ismine::before{background:#7c3aed}
+.nc.t-INFO::before{background:#3b82f6}.nc.t-SUCCESS::before{background:#10b981}
+.nc.t-WARNING::before{background:#f59e0b}.nc.t-ERROR::before,.nc.t-URGENT::before{background:#ef4444}
+.nc.t-SYSTEM::before{background:#7c3aed}
+@keyframes si{from{opacity:0;transform:translateY(-14px) scale(.97)}to{opacity:1;transform:none}}
+.nico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ni-INFO{background:rgba(59,130,246,.13)}.ni-SUCCESS{background:rgba(16,185,129,.13)}
+.ni-WARNING{background:rgba(245,158,11,.13)}.ni-ERROR,.ni-URGENT{background:rgba(239,68,68,.15)}
+.ni-SYSTEM{background:rgba(124,58,237,.13)}
+.nbody{flex:1;min-width:0}
+.nrow1{display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap}
+.ntit{font-size:14px;font-weight:700}
+.pill{font-size:11px;padding:2px 9px;border-radius:50px;font-weight:600}
+.pi-INFO{background:rgba(59,130,246,.18);color:#93c5fd}
+.pi-SUCCESS{background:rgba(16,185,129,.18);color:#6ee7b7}
+.pi-WARNING{background:rgba(245,158,11,.18);color:#fcd34d}
+.pi-ERROR,.pi-URGENT{background:rgba(239,68,68,.18);color:#fca5a5}
+.pi-SYSTEM{background:rgba(124,58,237,.18);color:#c4b5fd}
+.pi-sys{background:rgba(124,58,237,.1);color:#a78bfa;font-size:10px}
+.pi-mine{background:rgba(0,212,255,.1);color:#67e8f9;font-size:10px}
+.pi-crit{background:rgba(239,68,68,.2);color:#f87171;font-size:10px;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.nmsg{font-size:13px;color:#64748b;line-height:1.55;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nmeta{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.ntime{font-size:11px;color:#475569}
+.ntag{font-size:10px;padding:2px 8px;border-radius:50px;background:#1f2d45;color:#64748b}
+.empty{text-align:center;padding:60px 20px;color:#475569}
+.eico{font-size:52px;margin-bottom:12px;opacity:.4}
+#toasts{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;min-width:280px}
+.toast{background:#1a2332;border:1px solid #2a3a52;border-radius:12px;padding:11px 18px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.5);animation:tin .35s cubic-bezier(.34,1.56,.64,1) both,tout .3s ease forwards 3.7s;pointer-events:all}
+@keyframes tin{from{opacity:0;transform:translateY(-14px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes tout{to{opacity:0;transform:translateY(-8px)}}
+@media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+
+<div id="loginScreen">
+  <div class="lcard">
+    <div class="logo">🏛️</div>
+    <h2>بوابة الإشعارات الحكومية</h2>
+    <p>أدخل بياناتك لاستقبال إشعاراتك الرسمية</p>
+    <input class="finput" id="inId" placeholder="رقم الهوية الوطنية" maxlength="20" autofocus/>
+    <input class="finput" id="inName" placeholder="الاسم (اختياري)"/>
+    <p style="font-size:12px;color:#64748b;margin-bottom:10px;text-align:right">اختر النظام</p>
+    <div class="sys-grid">
+      <div class="sys-opt selected" data-code="ABSHER" onclick="selectSys(this)"><span class="sico">🆔</span>أبشر</div>
+      <div class="sys-opt" data-code="HEALTH_APP" onclick="selectSys(this)"><span class="sico">🏥</span>صحتي</div>
+      <div class="sys-opt" data-code="MOI_APP" onclick="selectSys(this)"><span class="sico">🛡️</span>وزارة الداخلية</div>
+      <div class="sys-opt" data-code="SALARY_APP" onclick="selectSys(this)"><span class="sico">💰</span>نظام الرواتب</div>
+      <div class="sys-opt" data-code="NAFATH" onclick="selectSys(this)"><span class="sico">🔐</span>نفاذ</div>
+      <div class="sys-opt" data-code="GOV_PORTAL" onclick="selectSys(this)"><span class="sico">🌐</span>البوابة الوطنية</div>
+    </div>
+    <button class="lbtn" id="lbtn" onclick="login()">دخول ←</button>
+    <div class="lerr" id="lerr">يرجى إدخال رقم الهوية واختيار النظام</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="userbox">
+      <div class="av" id="avEl"></div>
+      <div>
+        <div class="uname" id="unameEl"></div>
+        <div class="uid" id="uidEl"></div>
+        <div class="sys-tag" id="sysTagEl"></div>
+      </div>
+    </div>
+    <div class="hright">
+      <div class="wsbadge wait" id="wsbadge"><div class="dot" id="wsdot"></div><span id="wstext">جاري الاتصال...</span></div>
+      <button class="outbtn" onclick="logout()">خروج</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="scard c-cyan"><div class="snum" id="stT">0</div><div class="slbl">الإجمالي</div></div>
+    <div class="scard c-green"><div class="snum" id="stS">0</div><div class="slbl">نجاح</div></div>
+    <div class="scard c-amber"><div class="snum" id="stW">0</div><div class="slbl">تحذير</div></div>
+    <div class="scard c-red"><div class="snum" id="stE">0</div><div class="slbl">عاجل/خطأ</div></div>
+  </div>
+
+  <div class="filters">
+    <button class="fb on" onclick="setF('ALL',this)">الكل</button>
+    <button class="fb" onclick="setF('INFO',this)">🔵 معلومة</button>
+    <button class="fb" onclick="setF('SUCCESS',this)">🟢 نجاح</button>
+    <button class="fb" onclick="setF('WARNING',this)">🟡 تحذير</button>
+    <button class="fb" onclick="setF('ERROR',this)">🔴 خطأ</button>
+    <button class="fb" onclick="setF('URGENT',this)">🚨 عاجل</button>
+    <button class="fb" onclick="setF('MINE',this)">👤 لي فقط</button>
+    <button class="clrbtn" onclick="clearAll()">🗑️ مسح</button>
+  </div>
+
+  <div id="nlist" class="nlist">
+    <div class="empty"><div class="eico">📭</div><p>لا توجد إشعارات بعد</p></div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8082';
+const WS_URL = API + '/ws';
+const ICON  = {INFO:'ℹ️',SUCCESS:'✅',WARNING:'⚠️',ERROR:'❌',URGENT:'🚨',SYSTEM:'⚙️'};
+const LABEL = {INFO:'معلومة',SUCCESS:'نجاح',WARNING:'تحذير',ERROR:'خطأ',URGENT:'عاجل',SYSTEM:'نظام'};
+const FREQ  = {SUCCESS:880,INFO:660,WARNING:440,ERROR:220,URGENT:200,SYSTEM:550};
+const SYS   = {ABSHER:'أبشر',HEALTH_APP:'صحتي',MOI_APP:'وزارة الداخلية',SALARY_APP:'نظام الرواتب',NAFATH:'نفاذ',GOV_PORTAL:'البوابة الوطنية'};
+
+let myId=null,myName=null,mySystem='ABSHER',stomp=null,notifs=[],activeFilter='ALL';
+
+function selectSys(el){
+  document.querySelectorAll('.sys-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  mySystem=el.dataset.code;
+}
+
+['inId','inName'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')login();}));
+
+function login(){
+  const id=document.getElementById('inId').value.trim();
+  const nm=document.getElementById('inName').value.trim();
+  if(!id){document.getElementById('lerr').style.display='block';return;}
+  document.getElementById('lerr').style.display='none';
+  myId=id; myName=nm||('مستخدم '+id.slice(-4));
+  document.getElementById('lbtn').disabled=true;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('avEl').textContent=myName[0];
+  document.getElementById('unameEl').textContent=myName;
+  document.getElementById('uidEl').textContent='الهوية: '+myId;
+  document.getElementById('sysTagEl').innerHTML='🖥️ '+(SYS[mySystem]||mySystem);
+  connect();
+}
+
+function logout(){
+  if(stomp)try{stomp.disconnect();}catch(e){}
+  stomp=null;myId=myName=null;notifs=[];
+  document.getElementById('lbtn').disabled=false;
+  document.getElementById('inId').value='';
+  document.getElementById('inName').value='';
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+}
+
+function connect(){
+  setWS('wait');
+  const sock=new SockJS(WS_URL);
+  stomp=Stomp.over(sock);
+  stomp.debug=null;
+  stomp.connect({login:myId},()=>{
+    setWS('on');
+    toast('✅','متصل — '+(SYS[mySystem]||mySystem),'#10b981');
+
+    // 1. عام لكل الأنظمة
+    stomp.subscribe('/topic/notifications',msg=>addNotif(JSON.parse(msg.body),true));
+
+    // 2. broadcast لمستخدمي النظام المختار
+    stomp.subscribe('/topic/'+mySystem,msg=>addNotif(JSON.parse(msg.body),true));
+
+    // 3. شخصي لكل الأنظمة
+    stomp.subscribe('/topic/user/'+myId,msg=>addNotif(JSON.parse(msg.body),true));
+
+    // 4. شخصي في النظام المحدد — الأهم
+    stomp.subscribe('/topic/'+mySystem+'/'+myId,msg=>addNotif(JSON.parse(msg.body),true));
+
+    // جلب التاريخ
+    fetch(API+'/api/v1/notifications/user/'+myId+'/system/'+mySystem)
+      .then(r=>r.json()).then(d=>{if(Array.isArray(d))d.forEach(n=>addNotif(n,false));}).catch(()=>{});
+
+  },()=>{setWS('off');setTimeout(connect,5000);});
+}
+
+function addNotif(n,isNew){
+  if(notifs.find(x=>x.notificationId===n.notificationId))return;
+  notifs.unshift(n);
+  updateStats();render();
+  if(isNew){
+    playSound(n.type);
+    const mine=n.nationalId===myId;
+    toast(ICON[n.type]||'🔔',(n.priority==='CRITICAL'?'🚨 عاجل: ':'')+n.title,mine?'#7c3aed':'#00d4ff');
+  }
+}
+
+function render(){
+  const el=document.getElementById('nlist');
+  let list=activeFilter==='MINE'?notifs.filter(n=>n.nationalId===myId):activeFilter==='ALL'?notifs:notifs.filter(n=>n.type===activeFilter);
+  if(!list.length){el.innerHTML='<div class="empty"><div class="eico">📭</div><p>لا توجد إشعارات</p></div>';return;}
+  el.innerHTML=list.map((n,i)=>{
+    const mine=n.nationalId===myId;
+    const crit=n.priority==='CRITICAL';
+    const sys=n.systemCode?(SYS[n.systemCode]||n.systemCode):null;
+    return `<div class="nc t-${n.type||'INFO'} ${i===0?'isnew':''} ${mine?'ismine':''}">
+      <div class="nico ni-${n.type||'INFO'}">${ICON[n.type]||'🔔'}</div>
+      <div class="nbody">
+        <div class="nrow1">
+          <span class="ntit">${x(n.title)}</span>
+          <span class="pill pi-${n.type}">${LABEL[n.type]||n.type}</span>
+          ${crit?'<span class="pill pi-crit">🚨 عاجل</span>':''}
+          ${sys?`<span class="pill pi-sys">🖥️ ${x(sys)}</span>`:''}
+          ${mine?'<span class="pill pi-mine">👤 لك</span>':''}
+        </div>
+        <div class="nmsg">${x(n.message)}</div>
+        <div class="nmeta">
+          <span class="ntime">🕐 ${ft(n.createdAt)}</span>
+          ${n.senderEntity?`<span class="ntag">📤 ${x(n.senderEntity)}</span>`:''}
+          ${n.transactionId?`<span class="ntag">🔖 ${x(n.transactionId)}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateStats(){
+  document.getElementById('stT').textContent=notifs.length;
+  document.getElementById('stS').textContent=notifs.filter(n=>n.type==='SUCCESS').length;
+  document.getElementById('stW').textContent=notifs.filter(n=>n.type==='WARNING').length;
+  document.getElementById('stE').textContent=notifs.filter(n=>n.type==='ERROR'||n.type==='URGENT').length;
+}
+
+function setF(f,btn){activeFilter=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');render();}
+function clearAll(){notifs=[];updateStats();render();}
+
+function playSound(type){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.type=(type==='ERROR'||type==='URGENT')?'sawtooth':'sine';
+    const f=FREQ[type]||660;
+    osc.frequency.setValueAtTime(f,ctx.currentTime);
+    osc.frequency.setValueAtTime(f*1.3,ctx.currentTime+0.1);
+    gain.gain.setValueAtTime(0,ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.18,ctx.currentTime+0.04);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.6);
+    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.6);
+  }catch(e){}
+}
+
+function setWS(s){
+  document.getElementById('wsbadge').className='wsbadge '+(s==='on'?'on':s==='off'?'off':'wait');
+  document.getElementById('wsdot').className='dot'+(s==='on'?' pulse':'');
+  document.getElementById('wstext').textContent=s==='on'?'● متصل':s==='off'?'● منقطع':'جاري الاتصال...';
+}
+
+function toast(icon,msg,color){
+  const c=document.createElement('div');
+  c.className='toast';
+  if(color)c.style.borderColor=color+'55';
+  c.innerHTML=`<span style="font-size:18px">${icon}</span><span>${x(msg)}</span>`;
+  document.getElementById('toasts').appendChild(c);
+  setTimeout(()=>c.remove(),4200);
+}
+
+function x(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function ft(ts){
+  if(!ts)return 'الآن';
+  try{return new Date(ts).toLocaleString('ar-SA',{hour:'2-digit',minute:'2-digit',second:'2-digit',day:'2-digit',month:'2-digit'});}catch(e){return String(ts);}
+}
+</script>
+</body>
+</html>
